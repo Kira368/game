@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8-Bit Quest: Заброшенная Лаборатория</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            image-rendering: pixelated;
+        }
+        
+        body {
+            background-color: #222;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #crt-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0.1) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.3;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: #1a1a2e;
+            border: 8px solid #4a4a4a;
+            box-shadow: 0 0 20px #000;
+            overflow: hidden;
+        }
+        
+        #game-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a2e;
+        }
+        
+        #game-canvas {
+            background-color: #1a1a2e;
+            display: block;
+        }
+        
+        #dialog-box {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 4px solid #f1c40f;
+            padding: 15px;
+            color: white;
+            display: none;
+            z-index: 30;
+        }
+        
+        #dialog-text {
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        #dialog-options {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .dialog-option {
+            background-color: #34495e;
+            border: 2px solid #2c3e50;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        
+        .dialog-option:hover {
+            background-color: #2c3e50;
+        }
+        
+        /* Стильный терминал */
+        #terminal-puzzle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 400px;
+            background: #0a0a12;
+            border: 6px solid #444;
+            border-radius: 8px;
+            box-shadow: 0 0 0 4px #222, 
+                        0 0 20px rgba(0, 255, 0, 0.5),
+                        inset 0 0 10px rgba(0, 255, 0, 0.2);
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
+            display: none;
+            flex-direction: column;
+            z-index: 40;
+            overflow: hidden;
+        }
+        
+        #terminal-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #0f0;
+            font-weight: bold;
+            color: #0f0;
+        }
+        
+        #terminal-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            line-height: 1.4;
+            background-color: rgba(0, 20, 0, 0.2);
+            padding: 10px;
+            border: 1px solid #0f0;
+            border-radius: 4px;
+        }
+        
+        #terminal-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background-color: rgba(0, 10, 0, 0.3);
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #0f0;
+        }
+        
+        #terminal-prompt {
+            color: #0f0;
+            font-weight: bold;
+        }
+        
+        #terminal-command {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #0f0;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            flex-grow: 1;
+            outline: none;
+            padding: 5px;
+            font-size: 16px;
+        }
+        
+        #terminal-close {
+            color: #f00;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0 5px;
+            border: 1px solid #f00;
+            border-radius: 3px;
+        }
+        
+        /* Детализированная лаборатория */
+        .lab-building {
+            width: 250px;
+            height: 300px;
+            background: linear-gradient(to bottom, #333, #222);
+            position: absolute;
+            left: 500px;
+            top: 180px;
+            border: 6px solid #444;
+            border-radius: 10px;
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        .lab-door {
+            width: 70px;
+            height: 120px;
+            background: linear-gradient(to right, #654321, #543210);
+            position: absolute;
+            left: 90px;
+            bottom: 0;
+            border: 4px solid #4a3a29;
+            border-radius: 4px;
+            box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+        
+        .lab-window {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #add8e6, #6b9ebd);
+            position: absolute;
+            left: 30px;
+            top: 60px;
+            border: 4px solid #333;
+            border-radius: 4px;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .lab-window.right {
+            left: 170px;
+        }
+        
+        .terminal-object {
+            width: 100px;
+            height: 80px;
+            background: linear-gradient(to bottom, #222, #111);
+            position: absolute;
+            left: 180px;
+            top: 330px;
+            border: 4px solid #444;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5),
+                        inset 0 0 10px rgba(0, 255, 0, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .terminal-object::before {
+            content: ">_";
+            font-size: 24px;
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
+        }
+        
+        /* Детали локации */
+        #controls-hint {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border: 2px solid #f1c40f;
+            font-size: 14px;
+            z-index: 20;
+            border-radius: 4px;
+        }
+        
+        #mobile-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            display: none;
+            gap: 10px;
+            z-index: 20;
+        }
+        
+        .mobile-button {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            user-select: none;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Дополнительные детали */
+        .lab-details {
+            position: absolute;
+            width: 40px;
+            height: 20px;
+            background-color: #555;
+            left: 520px;
+            top: 220px;
+            border-radius: 3px;
+        }
+        
+        .lab-details::after {
+            content: "";
+            position: absolute;
+            width: 30px;
+            height: 5px;
+            background-color: #777;
+            top: 8px;
+            left: 5px;
+            border-radius: 3px;
+        }
+        
+        .lab-vent {
+            position: absolute;
+            width: 120px;
+            height: 20px;
+            background-color: #444;
+            left: 515px;
+            top: 400px;
+            border-radius: 3px;
+            background-image: linear-gradient(to right, #444 50%, #555 50%);
+            background-size: 20px 100%;
+        }
+        
+        .lab-sign {
+            position: absolute;
+            width: 80px;
+            height: 30px;
+            background-color: #a00;
+            left: 540px;
+            top: 280px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            transform: rotate(-5deg);
+            box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="crt-effect"></div>
+        
+        <div id="game-screen">
+            <canvas id="game-canvas" width="800" height="600"></canvas>
+            
+            <div id="controls-hint">WASD - движение, ПРОБЕЛ - взаимодействие</div>
+            
+            <div id="dialog-box">
+                <div id="dialog-text">Вы подошли к заброшенной лаборатории. Дверь закрыта электронным замком. Рядом стоит терминал.</div>
+                <div id="dialog-options">
+                    <div class="dialog-option" data-next="1">Осмотреть терминал</div>
+                    <div class="dialog-option" data-next="2">Попытаться взломать дверь</div>
+                </div>
+            </div>
+            
+            <!-- Лаборатория с деталями -->
+            <div class="lab-building">
+                <div class="lab-window"></div>
+                <div class="lab-window right"></div>
+                <div class="lab-details"></div>
+                <div class="lab-vent"></div>
+                <div class="lab-sign">ОПАСНО</div>
+                <div class="lab-door" id="lab-door"></div>
+            </div>
+            
+            <!-- Терминал -->
+            <div class="terminal-object" id="terminal"></div>
+
+            <!-- Журнал с подсказкой -->
+            <div class="clue-journal" title="Осмотреть">ЖУРНАЛ</div>
+            
+            <div id="mobile-controls">
+                <div class="mobile-button" id="up-btn">↑</div>
+                <div class="mobile-button" id="left-btn">←</div>
+                <div class="mobile-button" id="right-btn">→</div>
+                <div class="mobile-button" id="action-btn">A</div>
+            </div>
+        </div>
+        
+        <!-- Стильный терминал -->
+        <div id="terminal-puzzle">
+            <div id="terminal-header">
+                <span>ЛАБОРАТОРНЫЙ ТЕРМИНАЛ v2.4 [SECURE]</span>
+                <span id="terminal-close">X</span>
+            </div>
+            <div id="terminal-content">
+                > ДОСТУП ЗАПРЕЩЕН<br>
+                > ТРЕБУЕТСЯ АУТЕНТИФИКАЦИЯ<br><br>
+                > Статус системы:<br>
+                > - Двери: <span class="system-status">ЗАБЛОКИРОВАНЫ</span><br>
+                > - Энергия: <span class="system-status">12%</span><br>
+                > - Защита: <span class="system-status">АКТИВНА</span><br><br>
+                Доступные команды:<br>
+                - help<br>
+                - login<br>
+                - decode<br>
+                - status<br>
+                - quit<br><br>
+                > _
+            </div>
+            <div id="terminal-input">
+                <span id="terminal-prompt">></span>
+                <input type="text" id="terminal-command" autocomplete="off" placeholder="Введите команду...">
+            </div>
+        </div>
+    </div>
+
+    <audio id="bg-music" loop>
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
+    </audio>
+    
+    <audio id="click-sound">
+        <source src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU..." type="audio/wav">
+    </audio>
+
+    <script>
+        // Основные переменные игры
+        const gameState = {
+            currentScreen: 'game',
+            player: {
+                x: 400,
+                y: 400,
+                speed: 5,
+                items: ['keycard'],
+                width: 20,
+                height: 40
+            },
+            npcs: [
+                { 
+                    id: 1, 
+                    x: 570, 
+                    y: 450,
+                    width: 70,
+                    height: 120,
+                    dialog: [
+                        { id: 0, text: "Вы подошли к заброшенной лаборатории. Дверь закрыта электронным замком. Рядом стоит терминал." },
+                        { id: 1, text: "Терминал требует ввода пароля. На корпусе видны следы взлома - предыдущие попытки были неудачными." },
+                        { id: 2, text: "Дверь защищена мощным электромагнитным замком. На ней видны царапины от предыдущих попыток взлома." },
+                        { id: 3, text: "СИСТЕМА: Дверь разблокирована. Защита отключена. Вы слышите щелчок механизма." }
+                    ]
+                }
+            ],
+            objects: [
+                {
+                    id: 1,
+                    x: 500,
+                    y: 180,
+                    width: 250,
+                    height: 300,
+                    solid: true
+                },
+                {
+                    id: 2,
+                    x: 180,
+                    y: 330,
+                    width: 100,
+                    height: 80,
+                    solid: false
+                },
+                {
+                    id: 3,
+                    x: 300,
+                    y: 350,
+                    width: 60,
+                    height: 40,
+                    solid: false
+                }
+            ],
+            currentDialog: null,
+            puzzleSolved: false,
+            terminalCommands: [
+                { cmd: "help", response: "Доступные команды:\n- help - справка\n- login [пароль] - вход\n- decode - расшифровка\n- status - состояние системы\n- quit - выход" },
+                { cmd: "status", response: "Статус системы:\n- Двери: ЗАБЛОКИРОВАНЫ\n- Энергия: 12%\n- Защита: АКТИВНА\n- Внешние датчики: ОТКЛЮЧЕНЫ" },
+                { cmd: "decode", response: "Расшифровка данных...\nНайдена запись:\n'Пароль - дата инцидента (ДДММГГГГ)\nПоследняя запись в журнале: 15.07.1987'" },
+                { cmd: "login", response: "ОШИБКА: Требуется пароль\nИспользуйте: login [пароль]" }
+            ],
+            labPassword: "15071987",
+            terminalHistory: [],
+            loginAttempts: 3
+        };
+
+        // DOM элементы
+        const gameScreen = document.getElementById('game-screen');
+        const gameCanvas = document.getElementById('game-canvas');
+        const ctx = gameCanvas.getContext('2d');
+        const dialogBox = document.getElementById('dialog-box');
+        const dialogText = document.getElementById('dialog-text');
+        const dialogOptions = document.getElementById('dialog-options');
+        const terminal = document.getElementById('terminal');
+        const terminalPuzzle = document.getElementById('terminal-puzzle');
+        const terminalContent = document.getElementById('terminal-content');
+        const terminalCommand = document.getElementById('terminal-command');
+        const terminalClose = document.getElementById('terminal-close');
+        const labDoor = document.getElementById('lab-door');
+        const clueJournal = document.querySelector('.clue-journal');
+        const bgMusic = document.getElementById('bg-music');
+        const clickSound = document.getElementById('click-sound');
+        const controlsHint = document.getElementById('controls-hint');
+
+        // Инициализация игры
+        function initGame() {
+            bgMusic.volume = 0.5;
+            bgMusic.play().catch(e => console.log("Автовоспроизведение заблокировано"));
+            
+            if (/Mobi|Android/i.test(navigator.userAgent)) {
+                document.getElementById('mobile-controls').style.display = 'flex';
+                setupMobileControls();
+                controlsHint.style.display = 'none';
+            }
+            
+            setupTerminal();
+            setupClues();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Настройка терминала
+        function setupTerminal() {
+            terminal.addEventListener('click', () => {
+                if (!gameState.puzzleSolved) {
+                    terminalPuzzle.style.display = 'flex';
+                    terminalCommand.focus();
+                }
+            });
+            
+            terminalClose.addEventListener('click', () => {
+                terminalPuzzle.style.display = 'none';
+            });
+            
+            terminalCommand.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const cmd = terminalCommand.value.trim();
+                    if (cmd) {
+                        processCommand(cmd);
+                        terminalCommand.value = '';
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    if (gameState.terminalHistory.length > 0) {
+                        terminalCommand.value = gameState.terminalHistory[gameState.terminalHistory.length - 1];
+                    }
+                }
+            });
+        }
+
+        // Настройка подсказок в мире
+        function setupClues() {
+            clueJournal.addEventListener('click', () => {
+                startDialog({
+                    id: 99,
+                    dialog: [{
+                        id: 0,
+                        text: "Вы нашли разорванную страницу журнала:\n'...инцидент 15.07.1987... пароль...'"
+                    }]
+                });
+            });
+        }
+
+        // Обработка команд терминала
+        function processCommand(cmd) {
+            cmd = cmd.toLowerCase();
+            let response = "ОШИБКА: Неизвестная команда. Введите 'help' для справки.";
+            
+            gameState.terminalHistory.push(cmd);
+            
+            if (cmd === "help") {
+                response = `Доступные команды:
+- help       - Справка
+- login      - Вход в систему (требуется пароль)
+- decode     - Расшифровать данные
+- status     - Показать статус систем
+- quit       - Выйти из терминала`;
+            
+            } else if (cmd.startsWith("login")) {
+                if (cmd === "login") {
+                    response = "ОШИБКА: Используйте 'login [пароль]'";
+                } else {
+                    const password = cmd.split(" ")[1];
+                    
+                    if (password === gameState.labPassword) {
+                        response = "ДОСТУП РАЗРЕШЁН\n> Отключаю защиту...";
+                        gameState.puzzleSolved = true;
+                        gameState.loginAttempts = 3;
+                        
+                        setTimeout(() => {
+                            terminalContent.innerHTML += `<br>> Система: Дверь разблокирована.`;
+                            labDoor.style.background = "linear-gradient(to right, #8b4513, #7a3412)";
+                            labDoor.style.boxShadow = "inset 2px 2px 5px rgba(0, 0, 0, 0.5), 0 0 10px #0f0";
+                        }, 1500);
+                        
+                    } else {
+                        gameState.loginAttempts--;
+                        
+                        if (gameState.loginAttempts <= 0) {
+                            response = "ДОСТУП ЗАБЛОКИРОВАН\nСистема защиты активирована.";
+                            setTimeout(() => {
+                                terminalPuzzle.style.display = "none";
+                            }, 2000);
+                        } else {
+                            response = `ОШИБКА: Неверный пароль\nПопыток осталось: ${gameState.loginAttempts}`;
+                        }
+                    }
+                }
+            
+            } else if (cmd === "decode") {
+                response = "Расшифровка данных...\n> Найдена запись:\n> 'Пароль — дата инцидента (ДДММГГГГ).\n> Последняя запись в журнале: 15.07.1987'";
+            
+            } else if (cmd === "status") {
+                const randomEnergy = Math.floor(Math.random() * 10) + 5;
+                const randomSecurity = Math.random() > 0.5 ? "АКТИВНА" : "ОШИБКА";
+                
+                response = `Статус системы:
+> - Двери: ${gameState.puzzleSolved ? "ОТКРЫТЫ" : "ЗАБЛОКИРОВАНЫ"}
+> - Энергия: ${randomEnergy}%
+> - Защита: ${randomSecurity}
+> - Внешние датчики: ${Math.random() > 0.3 ? "ОТКЛЮЧЕНЫ" : "ШУМ"}`;
+            
+            } else if (cmd === "quit") {
+                response = "Завершение сеанса...";
+                setTimeout(() => {
+                    terminalPuzzle.style.display = "none";
+                }, 1000);
+            
+            // Easter Egg
+            } else if (cmd === "sudo rm -rf") {
+                response = "ОШИБКА: Доступ запрещён.\n> Но... вы слышите, как дверь скрипнула.";
+                labDoor.style.transform = "rotate(5deg)";
+                setTimeout(() => {
+                    labDoor.style.transform = "";
+                }, 1000);
+            }
+            
+            terminalContent.innerHTML += `<br>> ${cmd}<br>${response}<br><br>> _`;
+            terminalContent.scrollTop = terminalContent.scrollHeight;
+        }
+
+        // Игровой цикл
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            
+            if (gameState.currentScreen === 'game') {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Отрисовка игры
+        function drawGame() {
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+            
+            // Фон - ночной лес с деталями
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, gameCanvas.height);
+            skyGradient.addColorStop(0, '#0a0a1a');
+            skyGradient.addColorStop(1, '#1a2a2a');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+            
+            // Луна с кратерами
+            ctx.fillStyle = '#e0e0e0';
+            ctx.beginPath();
+            ctx.arc(100, 100, 40, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Кратеры на луне
+            ctx.fillStyle = '#ccc';
+            ctx.beginPath();
+            ctx.arc(110, 90, 8, 0, Math.PI * 2);
+            ctx.arc(85, 110, 5, 0, Math.PI * 2);
+            ctx.arc(120, 120, 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Звезды
+            ctx.fillStyle = 'white';
+            for (let i = 0; i < 150; i++) {
+                const x = Math.random() * gameCanvas.width;
+                const y = Math.random() * gameCanvas.height * 0.7;
+                const size = Math.random() * 1.5 + 0.5;
+                const opacity = Math.random() * 0.8 + 0.2;
+                ctx.globalAlpha = opacity;
+                ctx.fillRect(x, y, size, size);
+            }
+            ctx.globalAlpha = 1;
+            
+            // Деревья с разными оттенками
+            const treeColors = ['#1a3a1a', '#142814', '#1e421e'];
+            for (let i = 0; i < 15; i++) {
+                const x = i * 60 - 30;
+                const height = 120 + Math.random() * 80;
+                const color = treeColors[Math.floor(Math.random() * treeColors.length)];
+                
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(x, gameCanvas.height);
+                ctx.lineTo(x - 25, gameCanvas.height - height);
+                ctx.lineTo(x + 25, gameCanvas.height - height);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Ствол
+                ctx.fillStyle = '#3a2a1a';
+                ctx.fillRect(x - 5, gameCanvas.height - 10, 10, 10);
+            }
+            
+            // Дорожка с трещинами
+            ctx.fillStyle = '#3a3a3a';
+            ctx.beginPath();
+            ctx.moveTo(0, gameCanvas.height * 0.8);
+            ctx.lineTo(gameCanvas.width, gameCanvas.height * 0.6);
+            ctx.lineTo(gameCanvas.width, gameCanvas.height);
+            ctx.lineTo(0, gameCanvas.height);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Трещины на дорожке
+            ctx.strokeStyle = '#2a2a2a';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 10; i++) {
+                ctx.beginPath();
+                const x = Math.random() * gameCanvas.width;
+                const y = gameCanvas.height * 0.6 + Math.random() * (gameCanvas.height * 0.4);
+                ctx.moveTo(x, y);
+                ctx.lineTo(x + 10 + Math.random() * 30, y + 5 + Math.random() * 15);
+                ctx.stroke();
+            }
+            
+            // Игрок
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillRect(
+                gameState.player.x - gameState.player.width/2, 
+                gameState.player.y - gameState.player.height/2, 
+                gameState.player.width, 
+                gameState.player.height
+            );
+            
+            // Глаза игрока
+            ctx.fillStyle = '#000';
+            ctx.fillRect(gameState.player.x - 5, gameState.player.y - 10, 4, 4);
+            ctx.fillRect(gameState.player.x + 1, gameState.player.y - 10, 4, 4);
+            
+            // Диалог
+            if (gameState.currentDialog !== null) {
+                dialogBox.style.display = 'block';
+            } else {
+                dialogBox.style.display = 'none';
+            }
+        }
+
+        // Проверка столкновений
+        function checkCollision(x, y, obj) {
+            return x < obj.x + obj.width &&
+                   x + gameState.player.width > obj.x &&
+                   y < obj.y + obj.height &&
+                   y + gameState.player.height > obj.y;
+        }
+
+        // Обновление игры
+        function updateGame() {
+            gameState.objects.forEach(obj => {
+                if (obj.solid && checkCollision(gameState.player.x, gameState.player.y, obj)) {
+                    const playerCenterX = gameState.player.x + gameState.player.width / 2;
+                    const playerCenterY = gameState.player.y + gameState.player.height / 2;
+                    const objCenterX = obj.x + obj.width / 2;
+                    const objCenterY = obj.y + obj.height / 2;
+                    
+                    const dx = playerCenterX - objCenterX;
+                    const dy = playerCenterY - objCenterY;
+                    
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        gameState.player.x = dx > 0 ? 
+                            obj.x + obj.width : 
+                            obj.x - gameState.player.width;
+                    } else {
+                        gameState.player.y = dy > 0 ? 
+                            obj.y + obj.height : 
+                            obj.y - gameState.player.height;
+                    }
+                }
+            });
+        }
+
+        // Управление на мобильных устройствах
+        function setupMobileControls() {
+            document.getElementById('up-btn').addEventListener('touchstart', () => {
+                gameState.player.y -= gameState.player.speed;
+            });
+            
+            document.getElementById('left-btn').addEventListener('touchstart', () => {
+                gameState.player.x -= gameState.player.speed;
+            });
+            
+            document.getElementById('right-btn').addEventListener('touchstart', () => {
+                gameState.player.x += gameState.player.speed;
+            });
+            
+            document.getElementById('action-btn').addEventListener('touchstart', () => {
+                checkForInteraction();
+            });
+        }
+
+        // Проверка взаимодействий
+        function checkForInteraction() {
+            // Проверяем взаимодействие с терминалом
+            const terminalObj = gameState.objects.find(obj => obj.id === 2);
+            const distanceToTerminal = Math.sqrt(
+                Math.pow(gameState.player.x - (terminalObj.x + terminalObj.width/2), 2) + 
+                Math.pow(gameState.player.y - (terminalObj.y + terminalObj.height/2), 2)
+            );
+            
+            if (distanceToTerminal < 100 && !gameState.puzzleSolved) {
+                terminalPuzzle.style.display = 'flex';
+                terminalCommand.focus();
+                return;
+            }
+            
+            // Проверяем взаимодействие с дверью лаборатории
+            gameState.npcs.forEach(npc => {
+                const distance = Math.sqrt(
+                    Math.pow(gameState.player.x - npc.x, 2) + 
+                    Math.pow(gameState.player.y - npc.y, 2)
+                );
+                
+                if (distance < 80) {
+                    if (gameState.puzzleSolved) {
+                        startDialog(npc, 3);
+                    } else {
+                        startDialog(npc);
+                    }
+                }
+            });
+
+            // Проверяем взаимодействие с журналом
+            const journalObj = gameState.objects.find(obj => obj.id === 3);
+            const distanceToJournal = Math.sqrt(
+                Math.pow(gameState.player.x - (journalObj.x + journalObj.width/2), 2) + 
+                Math.pow(gameState.player.y - (journalObj.y + journalObj.height/2), 2)
+            );
+            
+            if (distanceToJournal < 60) {
+                clueJournal.style.transform = "scale(1.1)";
+                clueJournal.style.boxShadow = "0 0 10px #f1c40f";
+            } else {
+                clueJournal.style.transform = "";
+                clueJournal.style.boxShadow = "";
+            }
+        }
+
+        // Диалоговая система
+        function startDialog(npc, startLine = 0) {
+            gameState.currentDialog = {
+                npcId: npc.id,
+                currentLine: startLine
+            };
+            showDialogLine(startLine);
+        }
+
+        function showDialogLine(lineId) {
+            const npc = gameState.npcs.find(n => n.id === gameState.currentDialog.npcId);
+            const dialog = npc.dialog.find(d => d.id === lineId);
+            
+            dialogText.textContent = dialog.text;
+            
+            while (dialogOptions.firstChild) {
+                dialogOptions.removeChild(dialogOptions.firstChild);
+            }
+            
+            if (lineId === 0) {
+                addDialogOption('Осмотреть терминал', 1);
+                addDialogOption('Попытаться взломать дверь', 2);
+            } else if (lineId === 1) {
+                addDialogOption('Попробовать взломать', 'hack');
+                addDialogOption('Отойти', 'close');
+            } else if (lineId === 2) {
+                addDialogOption('Продолжить пытаться', 2);
+                addDialogOption('Отойти', 'close');
+            } else if (lineId === 3) {
+                addDialogOption('Войти в лабораторию', 'enter');
+                addDialogOption('Осмотреться', 'close');
+            }
+        }
+
+        function addDialogOption(text, nextLine) {
+            const option = document.createElement('div');
+            option.className = 'dialog-option';
+            option.textContent = text;
+            option.dataset.next = nextLine;
+            option.addEventListener('click', (e) => {
+                const next = e.target.dataset.next;
+                
+                if (next === 'close') {
+                    gameState.currentDialog = null;
+                } else if (next === 'hack') {
+                    gameState.currentDialog = null;
+                    terminalPuzzle.style.display = 'flex';
+                    terminalCommand.focus();
+                } else if (next === 'enter') {
+                    window.location.href = 'index2.html';
+                } else {
+                    showDialogLine(parseInt(next));
+                }
+            });
+            
+            dialogOptions.appendChild(option);
+        }
+
+        // Обработка клавиатуры
+        document.addEventListener('keydown', (e) => {
+            if (gameState.currentScreen !== 'game') return;
+            
+            const prevX = gameState.player.x;
+            const prevY = gameState.player.y;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    gameState.player.y -= gameState.player.speed;
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    gameState.player.y += gameState.player.speed;
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    gameState.player.x -= gameState.player.speed;
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    gameState.player.x += gameState.player.speed;
+                    break;
+                case ' ':
+                case 'Enter':
+                    checkForInteraction();
+                    break;
+                case 'Escape':
+                    if (terminalPuzzle.style.display === 'flex') {
+                        terminalPuzzle.style.display = 'none';
+                    } else {
+                        gameState.currentDialog = null;
+                    }
+                    break;
+            }
+            
+            // Столкновения
+            let collision = false;
+            gameState.objects.forEach(obj => {
+                if (obj.solid && checkCollision(gameState.player.x, gameState.player.y, obj)) {
+                    collision = true;
+                }
+            });
+            
+            if (collision) {
+                gameState.player.x = prevX;
+                gameState.player.y = prevY;
+            }
+            
+            // Границы экрана
+            gameState.player.x = Math.max(
+                gameState.player.width/2, 
+                Math.min(gameCanvas.width - gameState.player.width/2, gameState.player.x)
+            );
+            gameState.player.y = Math.max(
+                gameState.player.height/2, 
+                Math.min(gameCanvas.height - gameState.player.height/2, gameState.player.y)
+            );
+        });
+
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>

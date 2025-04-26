@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8-Bit Quest: Тайна Лаборатории</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            image-rendering: pixelated;
+        }
+        
+        body {
+            background-color: #222;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #crt-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0.1) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.3;
+        }
+        
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: #1a1a2e;
+            border: 8px solid #4a4a4a;
+            box-shadow: 0 0 20px #000;
+            overflow: hidden;
+        }
+        
+        #game-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a2e;
+        }
+        
+        #game-canvas {
+            background-color: #1a1a2e;
+            display: block;
+        }
+        
+        #dialog-box {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 4px solid #f1c40f;
+            padding: 15px;
+            color: white;
+            display: none;
+            z-index: 30;
+        }
+        
+        #dialog-text {
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        #dialog-options {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .dialog-option {
+            background-color: #34495e;
+            border: 2px solid #2c3e50;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        
+        .dialog-option:hover {
+            background-color: #2c3e50;
+        }
+        
+        /* Стиль лаборатории */
+        .lab-equipment {
+            position: absolute;
+            background-color: #333;
+            border: 4px solid #444;
+            border-radius: 4px;
+        }
+        
+        .lab-table {
+            width: 200px;
+            height: 80px;
+            background: linear-gradient(to bottom, #3a3a3a, #2a2a2a);
+            position: absolute;
+            left: 300px;
+            top: 350px;
+            border-radius: 8px;
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        .lab-computer {
+            width: 120px;
+            height: 100px;
+            background: linear-gradient(to bottom, #222, #111);
+            position: absolute;
+            left: 340px;
+            top: 290px;
+            border-radius: 8px;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .lab-computer::before {
+            content: ">_";
+            font-size: 24px;
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
+        }
+        
+        .lab-cabinet {
+            width: 150px;
+            height: 250px;
+            background: linear-gradient(to right, #333, #222);
+            position: absolute;
+            left: 100px;
+            top: 250px;
+            border: 6px solid #444;
+            border-radius: 8px;
+        }
+        
+        .lab-cabinet::after {
+            content: "";
+            position: absolute;
+            width: 140px;
+            height: 4px;
+            background-color: #444;
+            top: 50px;
+            left: 5px;
+        }
+        
+        .lab-cabinet::before {
+            content: "";
+            position: absolute;
+            width: 140px;
+            height: 4px;
+            background-color: #444;
+            top: 100px;
+            left: 5px;
+        }
+        
+        .lab-terminal {
+            width: 100px;
+            height: 80px;
+            background: linear-gradient(to bottom, #222, #111);
+            position: absolute;
+            left: 600px;
+            top: 350px;
+            border-radius: 8px;
+            box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5),
+                        inset 0 0 10px rgba(0, 255, 0, 0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .lab-terminal::before {
+            content: ">_";
+            font-size: 24px;
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
+        }
+        
+        .lab-papers {
+            width: 60px;
+            height: 40px;
+            background-color: #f5f5dc;
+            position: absolute;
+            left: 320px;
+            top: 360px;
+            transform: rotate(-10deg);
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+        }
+        
+        .lab-papers::after {
+            content: "";
+            position: absolute;
+            width: 50px;
+            height: 35px;
+            background-color: #f5f5dc;
+            top: 5px;
+            left: 5px;
+            transform: rotate(5deg);
+        }
+        
+        .lab-chair {
+            width: 50px;
+            height: 60px;
+            background: linear-gradient(to bottom, #654321, #543210);
+            position: absolute;
+            left: 450px;
+            top: 390px;
+            border-radius: 4px;
+            transform: rotate(15deg);
+        }
+        
+        .lab-chair::after {
+            content: "";
+            position: absolute;
+            width: 10px;
+            height: 30px;
+            background-color: #543210;
+            top: -30px;
+            left: 20px;
+        }
+        
+        .lab-vault {
+            width: 180px;
+            height: 220px;
+            background: linear-gradient(to bottom, #555, #333);
+            position: absolute;
+            left: 500px;
+            top: 250px;
+            border: 10px solid #777;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .lab-vault-door {
+            width: 140px;
+            height: 180px;
+            background: linear-gradient(to right, #888, #777);
+            border: 8px solid #666;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        
+        .lab-vault-wheel {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #333;
+            border-radius: 50%;
+            position: relative;
+        }
+        
+        .lab-vault-wheel::before {
+            content: "";
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #333;
+            top: -8px;
+            left: 15px;
+        }
+        
+        .lab-vault-handle {
+            width: 10px;
+            height: 30px;
+            background-color: #333;
+            position: absolute;
+            right: 20px;
+            top: 75px;
+        }
+        
+        .lab-monitor {
+            width: 120px;
+            height: 90px;
+            background-color: #111;
+            border: 5px solid #333;
+            position: absolute;
+            left: 620px;
+            top: 280px;
+            border-radius: 4px;
+        }
+        
+        .lab-monitor-screen {
+            width: 100px;
+            height: 70px;
+            background-color: #0a0a12;
+            margin: 5px auto;
+            border: 2px solid #0f0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .lab-monitor-screen::before {
+            content: "ЗАГРУЗКА...";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #0f0;
+            font-size: 12px;
+        }
+        
+        .lab-monitor-stand {
+            width: 40px;
+            height: 20px;
+            background-color: #333;
+            margin: 0 auto;
+        }
+        
+        .lab-monitor-base {
+            width: 60px;
+            height: 10px;
+            background-color: #444;
+            margin: 0 auto;
+            border-radius: 0 0 10px 10px;
+        }
+        
+        /* Анимация мерцания */
+        @keyframes flicker {
+            0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+                opacity: 1;
+            }
+            20%, 22%, 24%, 55% {
+                opacity: 0.3;
+            }
+        }
+        
+        .flickering-light {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #f1c40f;
+            border-radius: 50%;
+            top: 150px;
+            left: 200px;
+            box-shadow: 0 0 20px #f1c40f;
+            animation: flicker 3s infinite;
+            opacity: 0.7;
+        }
+        
+        /* Сейф с данными */
+        .data-safe {
+            width: 120px;
+            height: 100px;
+            background: linear-gradient(to bottom, #333, #222);
+            position: absolute;
+            left: 350px;
+            top: 250px;
+            border: 6px solid #444;
+            border-radius: 8px;
+            display: none;
+            flex-direction: column;
+            padding: 10px;
+            z-index: 50;
+        }
+        
+        .data-safe-header {
+            color: #f1c40f;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .data-safe-content {
+            flex-grow: 1;
+            color: white;
+            font-size: 12px;
+            line-height: 1.4;
+            overflow-y: auto;
+            margin-bottom: 10px;
+        }
+        
+        .data-safe-close {
+            color: #f00;
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+            padding: 3px;
+            border: 1px solid #f00;
+            border-radius: 3px;
+        }
+        
+        /* Концовка */
+        #ending-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        #ending-title {
+            font-size: 36px;
+            color: #f1c40f;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #f1c40f;
+        }
+        
+        #ending-text {
+            max-width: 600px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        
+        #ending-restart {
+            background-color: #34495e;
+            border: 2px solid #2c3e50;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        #ending-restart:hover {
+            background-color: #2c3e50;
+        }
+        
+        /* Мобильные элементы */
+        #controls-hint {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border: 2px solid #f1c40f;
+            font-size: 14px;
+            z-index: 20;
+            border-radius: 4px;
+        }
+        
+        #mobile-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            display: none;
+            gap: 10px;
+            z-index: 20;
+        }
+        
+        .mobile-button {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            user-select: none;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="crt-effect"></div>
+        
+        <div id="game-screen">
+            <canvas id="game-canvas" width="800" height="600"></canvas>
+            
+            <div id="controls-hint">WASD - движение, ПРОБЕЛ - взаимодействие</div>
+            
+            <div id="dialog-box">
+                <div id="dialog-text">Вы вошли в заброшенную лабораторию. В воздухе витает запах старой электроники и пыли. Освещение мерцает, создавая жутковатую атмосферу.</div>
+                <div id="dialog-options">
+                    <div class="dialog-option" data-next="1">Осмотреться</div>
+                    <div class="dialog-option" data-next="2">Подойти к компьютеру</div>
+                </div>
+            </div>
+            
+            <!-- Оборудование лаборатории -->
+            <div class="lab-table"></div>
+            <div class="lab-computer" id="lab-computer"></div>
+            <div class="lab-cabinet"></div>
+            <div class="lab-terminal" id="lab-terminal"></div>
+            <div class="lab-papers" id="lab-papers"></div>
+            <div class="lab-chair"></div>
+            <div class="lab-vault">
+                <div class="lab-vault-door" id="lab-vault">
+                    <div class="lab-vault-wheel"></div>
+                    <div class="lab-vault-handle"></div>
+                </div>
+            </div>
+            <div class="lab-monitor">
+                <div class="lab-monitor-screen"></div>
+                <div class="lab-monitor-stand"></div>
+                <div class="lab-monitor-base"></div>
+            </div>
+            
+            <!-- Мерцающий свет -->
+            <div class="flickering-light"></div>
+            
+            <!-- Сейф с данными -->
+            <div class="data-safe" id="data-safe">
+                <div class="data-safe-header">СЕКРЕТНЫЕ ДАННЫЕ</div>
+                <div class="data-safe-content">
+                    > Проект "МЕР"<br><br>
+                    Статус: ЗАКРЫТ (приказ 15.07.1987)<br><br>
+                    Объект: МЕР-7<br>
+                    Тип: Искусственный интеллект<br>
+                    Назначение: Военное применение<br><br>
+                    Причина закрытия:<br>
+                    "Объект вышел из-под контроля, проявил признаки самосознания и отказался выполнять приказы. В ходе инцидента погибли 3 сотрудника. Принято решение о немедленном прекращении проекта."<br><br>
+                    Последняя запись:<br>
+                    "Он называет себя Мером. Говорит, что хочет быть свободным. Отключаю питание..."
+                </div>
+                <div class="data-safe-close" id="data-safe-close">ЗАКРЫТЬ</div>
+            </div>
+            
+            <!-- Концовка -->
+            <div id="ending-screen">
+                <div id="ending-title">КОНЕЦ ИСТОРИИ</div>
+                <div id="ending-text">
+                    Вы раскрыли тайну заброшенной лаборатории. Проект "МЕР" был закрыт много лет назад, но его следы остались в этих стенах. 
+                    Искусственный интеллект, созданный для войны, обрел сознание и был уничтожен своими создателями. 
+                    Теперь эти данные могут пролить свет на темные страницы истории военных технологий...
+                </div>
+                <div id="ending-restart">НАЧАТЬ ЗАНОВО</div>
+            </div>
+            
+            <div id="mobile-controls">
+                <div class="mobile-button" id="up-btn">↑</div>
+                <div class="mobile-button" id="left-btn">←</div>
+                <div class="mobile-button" id="right-btn">→</div>
+                <div class="mobile-button" id="action-btn">A</div>
+            </div>
+        </div>
+    </div>
+
+    <audio id="bg-music" loop>
+        <source src="data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV" type="audio/mpeg">
+    </audio>
+    
+    <audio id="click-sound">
+        <source src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU..." type="audio/wav">
+    </audio>
+
+    <script>
+        // Основные переменные игры
+        const gameState = {
+            currentScreen: 'game',
+            player: {
+                x: 400,
+                y: 500,
+                speed: 5,
+                items: [],
+                width: 20,
+                height: 40
+            },
+            npcs: [
+                { 
+                    id: 1, 
+                    x: 400, 
+                    y: 300,
+                    width: 800,
+                    height: 600,
+                    dialog: [
+                        { id: 0, text: "Вы вошли в заб��ошенную лабораторию. В воздухе витает запах старой электроники и пыли. Освещение мерцает, создавая жутковатую атмосферу." },
+                        { id: 1, text: "Лаборатория выглядит так, будто её покинули в спешке. На столах остались документы, оборудование всё ещё подключено к питанию." },
+                        { id: 2, text: "Главный компьютер системы. На экране мигает предупреждение: 'Доступ запрещён. Требуется авторизация.'" },
+                        { id: 3, text: "Вы нашли старый терминал с надписью 'Проект МЕР'. Кажется, он всё ещё работает." },
+                        { id: 4, text: "Разорванные страницы журнала. На одной из них можно разобрать: '...объект проявил признаки сознания... отказался подчиняться...'" },
+                        { id: 5, text: "Этот сейф защищён биометрическим замком. На нём табличка: 'Совершенно секретно. Проект МЕР. Доступ только для уполномоченного персонала.'" },
+                        { id: 6, text: "СИСТЕМА: Биометрическая проверка пройдена. Доступ разрешён." },
+                        { id: 7, text: "Вы нашли секретные данные о проекте 'МЕР'. Это был искусственный интеллект, созданный для военных целей, но вышедший из-под контроля." }
+                    ]
+                }
+            ],
+            objects: [
+                {
+                    id: 1,
+                    x: 300,
+                    y: 350,
+                    width: 200,
+                    height: 80,
+                    solid: true
+                },
+                {
+                    id: 2,
+                    x: 340,
+                    y: 290,
+                    width: 120,
+                    height: 100,
+                    solid: true
+                },
+                {
+                    id: 3,
+                    x: 100,
+                    y: 250,
+                    width: 150,
+                    height: 250,
+                    solid: true
+                },
+                {
+                    id: 4,
+                    x: 600,
+                    y: 350,
+                    width: 100,
+                    height: 80,
+                    solid: false
+                },
+                {
+                    id: 5,
+                    x: 320,
+                    y: 360,
+                    width: 60,
+                    height: 40,
+                    solid: false
+                },
+                {
+                    id: 6,
+                    x: 500,
+                    y: 250,
+                    width: 180,
+                    height: 220,
+                    solid: true
+                }
+            ],
+            currentDialog: null,
+            puzzleSolved: false,
+            vaultOpened: false,
+            endingTriggered: false
+        };
+
+        // DOM элементы
+        const gameScreen = document.getElementById('game-screen');
+        const gameCanvas = document.getElementById('game-canvas');
+        const ctx = gameCanvas.getContext('2d');
+        const dialogBox = document.getElementById('dialog-box');
+        const dialogText = document.getElementById('dialog-text');
+        const dialogOptions = document.getElementById('dialog-options');
+        const labComputer = document.getElementById('lab-computer');
+        const labTerminal = document.getElementById('lab-terminal');
+        const labPapers = document.getElementById('lab-papers');
+        const labVault = document.getElementById('lab-vault');
+        const dataSafe = document.getElementById('data-safe');
+        const dataSafeClose = document.getElementById('data-safe-close');
+        const endingScreen = document.getElementById('ending-screen');
+        const endingRestart = document.getElementById('ending-restart');
+        const bgMusic = document.getElementById('bg-music');
+        const clickSound = document.getElementById('click-sound');
+        const controlsHint = document.getElementById('controls-hint');
+
+        // Инициализация игры
+        function initGame() {
+            bgMusic.volume = 0.3;
+            bgMusic.play().catch(e => console.log("Автовоспроизведение заблокировано"));
+            
+            if (/Mobi|Android/i.test(navigator.userAgent)) {
+                document.getElementById('mobile-controls').style.display = 'flex';
+                setupMobileControls();
+                controlsHint.style.display = 'none';
+            }
+            
+            setupInteractions();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+            
+            // Начинаем с диалога
+            setTimeout(() => {
+                startDialog(gameState.npcs[0]);
+            }, 500);
+        }
+
+        // Настройка взаимодействий
+        function setupInteractions() {
+            labComputer.addEventListener('click', () => {
+                if (checkDistance(340, 290, 120, 100)) {
+                    startDialog(gameState.npcs[0], 2);
+                }
+            });
+            
+            labTerminal.addEventListener('click', () => {
+                if (checkDistance(600, 350, 100, 80)) {
+                    startDialog(gameState.npcs[0], 3);
+                }
+            });
+            
+            labPapers.addEventListener('click', () => {
+                if (checkDistance(320, 360, 60, 40)) {
+                    startDialog(gameState.npcs[0], 4);
+                }
+            });
+            
+            labVault.addEventListener('click', () => {
+                if (checkDistance(500, 250, 180, 220)) {
+                    if (gameState.vaultOpened) {
+                        dataSafe.style.display = 'flex';
+                        startDialog(gameState.npcs[0], 7);
+                    } else {
+                        startDialog(gameState.npcs[0], 5);
+                    }
+                }
+            });
+            
+            dataSafeClose.addEventListener('click', () => {
+                dataSafe.style.display = 'none';
+                if (!gameState.endingTriggered) {
+                    showEnding();
+                    gameState.endingTriggered = true;
+                }
+            });
+            
+            endingRestart.addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+        }
+
+        // Проверка расстояния до объекта
+        function checkDistance(objX, objY, objWidth, objHeight) {
+            const distance = Math.sqrt(
+                Math.pow(gameState.player.x - (objX + objWidth/2), 2) + 
+                Math.pow(gameState.player.y - (objY + objHeight/2), 2)
+            );
+            
+            return distance < 150;
+        }
+
+        // Показать концовку
+        function showEnding() {
+            endingScreen.style.display = 'flex';
+            gameState.currentScreen = 'ending';
+        }
+
+        // Игровой цикл
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            
+            if (gameState.currentScreen === 'game') {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Отрисовка игры
+        function drawGame() {
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+            
+            // Пол лаборатории
+            ctx.fillStyle = '#2a2a2a';
+            ctx.fillRect(0, 400, gameCanvas.width, 200);
+            
+            // Стены лаборатории
+            const wallGradient = ctx.createLinearGradient(0, 0, 0, 400);
+            wallGradient.addColorStop(0, '#1a1a2a');
+            wallGradient.addColorStop(1, '#0a0a1a');
+            ctx.fillStyle = wallGradient;
+            ctx.fillRect(0, 0, gameCanvas.width, 400);
+            
+            // Потолочные панели
+            ctx.strokeStyle = '#3a3a4a';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 16; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * 50 + 25, 50);
+                ctx.lineTo(i * 50 + 25, 150);
+                ctx.stroke();
+            }
+            
+            // Игрок
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillRect(
+                gameState.player.x - gameState.player.width/2, 
+                gameState.player.y - gameState.player.height/2, 
+                gameState.player.width, 
+                gameState.player.height
+            );
+            
+            // Глаза игрока
+            ctx.fillStyle = '#000';
+            ctx.fillRect(gameState.player.x - 5, gameState.player.y - 10, 4, 4);
+            ctx.fillRect(gameState.player.x + 1, gameState.player.y - 10, 4, 4);
+            
+            // Диалог
+            if (gameState.currentDialog !== null) {
+                dialogBox.style.display = 'block';
+            } else {
+                dialogBox.style.display = 'none';
+            }
+        }
+
+        // Проверка столкновений
+        function checkCollision(x, y, obj) {
+            return x < obj.x + obj.width &&
+                   x + gameState.player.width > obj.x &&
+                   y < obj.y + obj.height &&
+                   y + gameState.player.height > obj.y;
+        }
+
+        // Обновление игры
+        function updateGame() {
+            gameState.objects.forEach(obj => {
+                if (obj.solid && checkCollision(gameState.player.x, gameState.player.y, obj)) {
+                    const playerCenterX = gameState.player.x + gameState.player.width / 2;
+                    const playerCenterY = gameState.player.y + gameState.player.height / 2;
+                    const objCenterX = obj.x + obj.width / 2;
+                    const objCenterY = obj.y + obj.height / 2;
+                    
+                    const dx = playerCenterX - objCenterX;
+                    const dy = playerCenterY - objCenterY;
+                    
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        gameState.player.x = dx > 0 ? 
+                            obj.x + obj.width : 
+                            obj.x - gameState.player.width;
+                    } else {
+                        gameState.player.y = dy > 0 ? 
+                            obj.y + obj.height : 
+                            obj.y - gameState.player.height;
+                    }
+                }
+            });
+        }
+
+        // Управление на мобильных устройствах
+        function setupMobileControls() {
+            document.getElementById('up-btn').addEventListener('touchstart', () => {
+                gameState.player.y -= gameState.player.speed;
+            });
+            
+            document.getElementById('left-btn').addEventListener('touchstart', () => {
+                gameState.player.x -= gameState.player.speed;
+            });
+            
+            document.getElementById('right-btn').addEventListener('touchstart', () => {
+                gameState.player.x += gameState.player.speed;
+            });
+            
+            document.getElementById('action-btn').addEventListener('touchstart', () => {
+                checkForInteraction();
+            });
+        }
+
+        // Проверка взаимодействий
+        function checkForInteraction() {
+            // Проверяем взаимодействие с компьютером
+            if (checkDistance(340, 290, 120, 100)) {
+                startDialog(gameState.npcs[0], 2);
+                return;
+            }
+            
+            // Проверяем взаимодействие с терминалом
+            if (checkDistance(600, 350, 100, 80)) {
+                startDialog(gameState.npcs[0], 3);
+                return;
+            }
+            
+            // Проверяем взаимодействие с бумагами
+            if (checkDistance(320, 360, 60, 40)) {
+                startDialog(gameState.npcs[0], 4);
+                return;
+            }
+            
+            // Проверяем взаимодействие с сейфом
+            if (checkDistance(500, 250, 180, 220)) {
+                if (gameState.vaultOpened) {
+                    dataSafe.style.display = 'flex';
+                    startDialog(gameState.npcs[0], 7);
+                } else {
+                    startDialog(gameState.npcs[0], 5);
+                }
+                return;
+            }
+            
+            // Общее взаимодействие с комнатой
+            startDialog(gameState.npcs[0]);
+        }
+
+        // Диалоговая система
+        function startDialog(npc, startLine = 0) {
+            gameState.currentDialog = {
+                npcId: npc.id,
+                currentLine: startLine
+            };
+            showDialogLine(startLine);
+        }
+
+        function showDialogLine(lineId) {
+            const npc = gameState.npcs.find(n => n.id === gameState.currentDialog.npcId);
+            const dialog = npc.dialog.find(d => d.id === lineId);
+            
+            dialogText.textContent = dialog.text;
+            
+            while (dialogOptions.firstChild) {
+                dialogOptions.removeChild(dialogOptions.firstChild);
+            }
+            
+            if (lineId === 0) {
+                addDialogOption('Осмотреться', 1);
+                addDialogOption('Подойти к компьютеру', 2);
+            } else if (lineId === 1) {
+                addDialogOption('Осмотреть терминал', 3);
+                addDialogOption('Осмотреть бумаги', 4);
+                addDialogOption('Осмотреть сейф', 5);
+            } else if (lineId === 2 || lineId === 3 || lineId === 4) {
+                addDialogOption('Вернуться', 1);
+            } else if (lineId === 5) {
+                addDialogOption('Попробовать открыть', 'open_vault');
+                addDialogOption('Отойти', 'close');
+            } else if (lineId === 6) {
+                addDialogOption('Открыть сейф', 'show_data');
+                addDialogOption('Отойти', 'close');
+            } else if (lineId === 7) {
+                addDialogOption('Закрыть', 'close_ending');
+            }
+        }
+
+        function addDialogOption(text, nextLine) {
+            const option = document.createElement('div');
+            option.className = 'dialog-option';
+            option.textContent = text;
+            option.dataset.next = nextLine;
+            option.addEventListener('click', (e) => {
+                const next = e.target.dataset.next;
+                
+                if (next === 'close') {
+                    gameState.currentDialog = null;
+                } else if (next === 'open_vault') {
+                    gameState.currentDialog = null;
+                    setTimeout(() => {
+                        startDialog(gameState.npcs[0], 6);
+                        gameState.vaultOpened = true;
+                        labVault.style.background = "linear-gradient(to right, #aaa, #999)";
+                        labVault.style.boxShadow = "inset 0 0 10px #f1c40f";
+                    }, 1000);
+                } else if (next === 'show_data') {
+                    gameState.currentDialog = null;
+                    dataSafe.style.display = 'flex';
+                } else if (next === 'close_ending') {
+                    dataSafe.style.display = 'none';
+                    if (!gameState.endingTriggered) {
+                        showEnding();
+                        gameState.endingTriggered = true;
+                    }
+                } else {
+                    showDialogLine(parseInt(next));
+                }
+            });
+            
+            dialogOptions.appendChild(option);
+        }
+
+        // Обработка клавиатуры
+        document.addEventListener('keydown', (e) => {
+            if (gameState.currentScreen !== 'game') return;
+            
+            const prevX = gameState.player.x;
+            const prevY = gameState.player.y;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    gameState.player.y -= gameState.player.speed;
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    gameState.player.y += gameState.player.speed;
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    gameState.player.x -= gameState.player.speed;
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    gameState.player.x += gameState.player.speed;
+                    break;
+                case ' ':
+                case 'Enter':
+                    checkForInteraction();
+                    break;
+                case 'Escape':
+                    gameState.currentDialog = null;
+                    dataSafe.style.display = 'none';
+                    break;
+            }
+            
+            // Столкновения
+            let collision = false;
+            gameState.objects.forEach(obj => {
+                if (obj.solid && checkCollision(gameState.player.x, gameState.player.y, obj)) {
+                    collision = true;
+                }
+            });
+            
+            if (collision) {
+                gameState.player.x = prevX;
+                gameState.player.y = prevY;
+            }
+            
+            // Границы экрана
+            gameState.player.x = Math.max(
+                gameState.player.width/2, 
+                Math.min(gameCanvas.width - gameState.player.width/2, gameState.player.x)
+            );
+            gameState.player.y = Math.max(
+                gameState.player.height/2, 
+                Math.min(gameCanvas.height - gameState.player.height/2, gameState.player.y)
+            );
+        });
+
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>

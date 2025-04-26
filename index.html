@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>8-Bit Quest: Тайна Пиксельного Города</title>
+    <style>
+        /* Сброс стилей и базовые настройки */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            image-rendering: pixelated;
+        }
+        
+        body {
+            background-color: #222;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* CRT-эффект */
+        #crt-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0.1) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.3;
+        }
+        
+        /* Главный контейнер игры */
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: #1a1a2e;
+            border: 8px solid #4a4a4a;
+            box-shadow: 0 0 20px #000;
+            overflow: hidden;
+        }
+        
+        /* Экран меню */
+        #menu-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #1a1a2e, #16213e);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        .game-title {
+            color: #f1c40f;
+            font-size: 48px;
+            text-shadow: 4px 4px 0 #8b8000, 8px 8px 0 #000;
+            margin-bottom: 60px;
+            letter-spacing: 2px;
+        }
+        
+        .menu-button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 10px;
+            font-size: 20px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            width: 250px;
+            text-align: center;
+            border: 4px solid #c0392b;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.2s;
+        }
+        
+        .menu-button:hover {
+            background-color: #c0392b;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+        
+        /* Игровой экран */
+        #game-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: none;
+            background-color: #1a1a2e;
+        }
+        
+        /* Игровое поле */
+        #game-canvas {
+            background-color: #1a1a2e;
+            display: block;
+        }
+        
+        /* Инвентарь */
+        #inventory {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border: 3px solid #f1c40f;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .inventory-slot {
+            width: 40px;
+            height: 40px;
+            background-color: #34495e;
+            border: 2px solid #2c3e50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+        }
+        
+        /* Диалоговое окно */
+        #dialog-box {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            background-color: rgba(0, 0, 0, 0.8);
+            border: 4px solid #f1c40f;
+            padding: 15px;
+            color: white;
+            display: none;
+        }
+        
+        #dialog-text {
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        #dialog-options {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .dialog-option {
+            background-color: #34495e;
+            border: 2px solid #2c3e50;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        
+        .dialog-option:hover {
+            background-color: #2c3e50;
+        }
+        
+        /* Настройки */
+        #settings-screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            color: white;
+        }
+        
+        .settings-title {
+            font-size: 32px;
+            margin-bottom: 30px;
+            color: #f1c40f;
+        }
+        
+        .settings-option {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .settings-option label {
+            margin-right: 10px;
+            width: 150px;
+        }
+        
+        /* Мобильное управление */
+        #mobile-controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            display: none;
+            gap: 10px;
+        }
+        
+        .mobile-button {
+            width: 60px;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            user-select: none;
+        }
+        
+        /* Подсказка управления */
+        #controls-hint {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border: 2px solid #f1c40f;
+            font-size: 14px;
+        }
+        
+        /* Объекты на карте */
+        .game-object {
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        /* Дом мэра */
+        .mayor-house {
+            width: 120px;
+            height: 100px;
+            background-color: #8b4513;
+            border: 4px solid #654321;
+        }
+        
+        .mayor-house-roof {
+            position: absolute;
+            width: 120px;
+            height: 30px;
+            background-color: #a0522d;
+            top: -30px;
+            left: 0;
+            clip-path: polygon(0% 100%, 50% 0%, 100% 100%);
+        }
+        
+        .mayor-house-door {
+            position: absolute;
+            width: 40px;
+            height: 60px;
+            background-color: #654321;
+            bottom: 0;
+            left: 40px;
+            border: 3px solid #4a3a29;
+        }
+        
+        .mayor-house-window {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #add8e6;
+            top: 20px;
+            left: 10px;
+            border: 3px solid #4a3a29;
+        }
+        
+        .mayor-house-window.right {
+            left: auto;
+            right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <!-- CRT эффект -->
+        <div id="crt-effect"></div>
+        
+        <!-- Главное меню -->
+        <div id="menu-screen">
+            <h1 class="game-title">8-BIT QUEST</h1>
+            <button class="menu-button" id="new-game-btn">Новая игра</button>
+            <button class="menu-button" id="continue-btn" disabled>Продолжить</button>
+            <button class="menu-button" id="settings-btn">Настройки</button>
+            <button class="menu-button" id="exit-btn">Выход</button>
+        </div>
+        
+        <!-- Игровой экран -->
+        <div id="game-screen">
+            <canvas id="game-canvas" width="800" height="600"></canvas>
+            
+            <!-- Подсказка управления -->
+            <div id="controls-hint">WASD - движение, ПРОБЕЛ - взаимодействие</div>
+            
+            <!-- Инвентарь -->
+            <div id="inventory">
+                <div class="inventory-slot">?</div>
+                <div class="inventory-slot">?</div>
+                <div class="inventory-slot">?</div>
+                <div class="inventory-slot">?</div>
+                <div class="inventory-slot">?</div>
+            </div>
+            
+            <!-- Диалоговое окно -->
+            <div id="dialog-box">
+                <div id="dialog-text">Привет, путник! Добро пожаловать в Пиксельный город. Наш мэр пропал, и нам нужна твоя помощь!</div>
+                <div id="dialog-options">
+                    <div class="dialog-option" data-next="1">Кто ты?</div>
+                    <div class="dialog-option" data-next="2">Что случилось с мэром?</div>
+                    <div class="dialog-option" data-next="3">Я помогу!</div>
+                </div>
+            </div>
+            
+            <!-- Мобильное управление -->
+            <div id="mobile-controls">
+                <div class="mobile-button" id="up-btn">↑</div>
+                <div class="mobile-button" id="left-btn">←</div>
+                <div class="mobile-button" id="right-btn">→</div>
+                <div class="mobile-button" id="action-btn">A</div>
+            </div>
+            
+            <!-- Дом мэра -->
+            <div id="mayor-house" class="game-object" style="left: 600px; top: 150px;">
+                <div class="mayor-house-roof"></div>
+                <div class="mayor-house">
+                    <div class="mayor-house-window"></div>
+                    <div class="mayor-house-window right"></div>
+                    <div class="mayor-house-door"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Экран настроек -->
+        <div id="settings-screen">
+            <h2 class="settings-title">НАСТРОЙКИ</h2>
+            
+            <div class="settings-option">
+                <label for="music-volume">Музыка:</label>
+                <input type="range" id="music-volume" min="0" max="1" step="0.1" value="0.5">
+            </div>
+            
+            <div class="settings-option">
+                <label for="sound-volume">Звуки:</label>
+                <input type="range" id="sound-volume" min="0" max="1" step="0.1" value="0.7">
+            </div>
+            
+            <div class="settings-option">
+                <label for="fullscreen">Полный экран:</label>
+                <input type="checkbox" id="fullscreen">
+            </div>
+            
+            <button class="menu-button" id="back-btn">Назад</button>
+        </div>
+    </div>
+
+    <!-- Аудио элементы -->
+    <audio id="bg-music" loop>
+        <source src="https://soundcloud.com/lennonhutton/dox?utm_source=clipboard&utm_medium=text&utm_campaign=social_sharing" type="audio/mpeg">
+    </audio>
+    
+    <audio id="click-sound">
+        <source src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU... (короткий base64 звук клика)" type="audio/wav">
+    </audio>
+
+    <script>
+        // Основные переменные игры
+        const gameState = {
+            currentScreen: 'menu',
+            player: {
+                x: 400,
+                y: 300,
+                speed: 5,
+                items: [],
+                width: 20,
+                height: 40
+            },
+            npcs: [
+                { 
+                    id: 1, 
+                    x: 200, 
+                    y: 200,
+                    width: 20,
+                    height: 40,
+                    dialog: [
+                        { id: 0, text: "Привет, путник! Добро пожаловать в Пиксельный город. Наш мэр пропал, и нам нужна твоя помощь!" },
+                        { id: 1, text: "Я старый мудрец этого города. Многие годы я наблюдаю за этими землями." },
+                        { id: 2, text: "Мэр исчез три дня назад. Последний раз его видели у старой башни на востоке." },
+                        { id: 3, text: "Отлично! Проверь его дом - может, найдешь подсказки. Вот ключ от его двери." }
+                    ]
+                },
+                { 
+                    id: 2, 
+                    x: 640, 
+                    y: 250,
+                    width: 1,
+                    height: 1,
+                    dialog: [
+                        { id: 0, text: "*Дверь заперта*" },
+                        { id: 1, text: "Вы использовали ключ и вошли в дом мэра." },
+                        { id: 2, text: "Внутри вы нашли дневник мэра с последней записью: 'Они нашли меня... мне нужно спрятаться в заброшаную лабораторию.'" }
+                    ]
+                }
+            ],
+            objects: [
+                {
+                    id: 1,
+                    x: 600,
+                    y: 150,
+                    width: 120,
+                    height: 130, // Высота дома с крышей
+                    solid: true
+                }
+            ],
+            currentDialog: null,
+            gameStarted: false,
+            towerFound: false
+        };
+
+        // DOM элементы
+        const menuScreen = document.getElementById('menu-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const settingsScreen = document.getElementById('settings-screen');
+        const gameCanvas = document.getElementById('game-canvas');
+        const ctx = gameCanvas.getContext('2d');
+        const dialogBox = document.getElementById('dialog-box');
+        const dialogText = document.getElementById('dialog-text');
+        const dialogOptions = document.getElementById('dialog-options');
+        const inventorySlots = document.querySelectorAll('.inventory-slot');
+        const bgMusic = document.getElementById('bg-music');
+        const clickSound = document.getElementById('click-sound');
+        const controlsHint = document.getElementById('controls-hint');
+
+        // Кнопки меню
+        document.getElementById('new-game-btn').addEventListener('click', startNewGame);
+        document.getElementById('continue-btn').addEventListener('click', continueGame);
+        document.getElementById('settings-btn').addEventListener('click', showSettings);
+        document.getElementById('exit-btn').addEventListener('click', exitGame);
+        document.getElementById('back-btn').addEventListener('click', hideSettings);
+
+        // Инициализация игры
+        function initGame() {
+            // Проверяем, есть ли сохранение
+            if (localStorage.getItem('8bitQuestSave')) {
+                document.getElementById('continue-btn').disabled = false;
+            }
+            
+            // Запускаем фоновую музыку
+            bgMusic.volume = 0.5;
+            bgMusic.play().catch(e => console.log("Автовоспроизведение заблокировано"));
+            
+            // Проверяем мобильное устройство
+            if (/Mobi|Android/i.test(navigator.userAgent)) {
+                document.getElementById('mobile-controls').style.display = 'flex';
+                setupMobileControls();
+                controlsHint.style.display = 'none';
+            }
+        }
+
+        // Начало новой игры
+        function startNewGame() {
+            playSound(clickSound);
+            menuScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            gameState.currentScreen = 'game';
+            gameState.gameStarted = true;
+            
+            // Сброс состояния игры
+            gameState.player = {
+                x: 400,
+                y: 300,
+                speed: 5,
+                items: [],
+                width: 20,
+                height: 40
+            };
+            
+            gameState.towerFound = false;
+            
+            // Отрисовка начального состояния
+            drawGame();
+            
+            // Запуск игрового цикла
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Продолжение игры
+        function continueGame() {
+            playSound(clickSound);
+            // Загрузка сохранения (заглушка)
+            alert("Загрузка сохранения...");
+        }
+
+        // Настройки
+        function showSettings() {
+            playSound(clickSound);
+            menuScreen.style.display = 'none';
+            settingsScreen.style.display = 'flex';
+            gameState.currentScreen = 'settings';
+        }
+
+        function hideSettings() {
+            playSound(clickSound);
+            settingsScreen.style.display = 'none';
+            
+            if (gameState.gameStarted) {
+                gameScreen.style.display = 'block';
+                gameState.currentScreen = 'game';
+            } else {
+                menuScreen.style.display = 'flex';
+                gameState.currentScreen = 'menu';
+            }
+        }
+
+        // Выход из игры
+        function exitGame() {
+            playSound(clickSound);
+            // В реальном проекте здесь может быть закрытие окна или переход
+            alert("Спасибо за игру! Возвращайтесь скорее!");
+        }
+
+        // Игровой цикл
+        function gameLoop() {
+            updateGame();
+            drawGame();
+            
+            if (gameState.currentScreen === 'game') {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // Проверка столкновений
+        function checkCollision(x, y, obj) {
+            return x < obj.x + obj.width &&
+                   x + gameState.player.width > obj.x &&
+                   y < obj.y + obj.height &&
+                   y + gameState.player.height > obj.y;
+        }
+
+        // Обновление игрового состояния
+        function updateGame() {
+            // Проверяем столкновение с объектами
+            gameState.objects.forEach(obj => {
+                if (obj.solid && checkCollision(gameState.player.x, gameState.player.y, obj)) {
+                    // Выталкиваем игрока из объекта
+                    const playerCenterX = gameState.player.x + gameState.player.width / 2;
+                    const playerCenterY = gameState.player.y + gameState.player.height / 2;
+                    const objCenterX = obj.x + obj.width / 2;
+                    const objCenterY = obj.y + obj.height / 2;
+                    
+                    const dx = playerCenterX - objCenterX;
+                    const dy = playerCenterY - objCenterY;
+                    
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        gameState.player.x = dx > 0 ? 
+                            obj.x + obj.width : 
+                            obj.x - gameState.player.width;
+                    } else {
+                        gameState.player.y = dy > 0 ? 
+                            obj.y + obj.height : 
+                            obj.y - gameState.player.height;
+                    }
+                }
+            });
+        }
+
+        // Отрисовка игры
+        function drawGame() {
+            // Очистка холста
+            ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+            
+            // Рисуем фон
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+            
+            // Рисуем сетку (для эффекта пикселей)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            
+            for (let x = 0; x < gameCanvas.width; x += 20) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, gameCanvas.height);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y < gameCanvas.height; y += 20) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(gameCanvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Рисуем NPC (мудреца)
+            const wiseMan = gameState.npcs.find(npc => npc.id === 1);
+            ctx.fillStyle = '#f1c40f';
+            ctx.fillRect(wiseMan.x - wiseMan.width/2, wiseMan.y - wiseMan.height/2, wiseMan.width, wiseMan.height);
+            
+            // Глаза мудреца
+            ctx.fillStyle = '#000';
+            ctx.fillRect(wiseMan.x - 5, wiseMan.y - 10, 4, 4);
+            ctx.fillRect(wiseMan.x + 1, wiseMan.y - 10, 4, 4);
+            
+            // Рисуем дверь дома мэра (NPC)
+            const mayorDoor = gameState.npcs.find(npc => npc.id === 2);
+            ctx.fillStyle = '#654321';
+            ctx.fillRect(mayorDoor.x, mayorDoor.y, mayorDoor.width, mayorDoor.height);
+            
+            // Ручка двери
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(mayorDoor.x + 30, mayorDoor.y + 25, 5, 5);
+            
+            // Рисуем игрока
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillRect(
+                gameState.player.x - gameState.player.width/2, 
+                gameState.player.y - gameState.player.height/2, 
+                gameState.player.width, 
+                gameState.player.height
+            );
+            
+            // Глаза игрока
+            ctx.fillStyle = '#000';
+            ctx.fillRect(gameState.player.x - 5, gameState.player.y - 10, 4, 4);
+            ctx.fillRect(gameState.player.x + 1, gameState.player.y - 10, 4, 4);
+            
+            // Если диалог активен, показываем его
+            if (gameState.currentDialog !== null) {
+                dialogBox.style.display = 'block';
+            } else {
+                dialogBox.style.display = 'none';
+            }
+        }
+
+        // Управление на мобильных устройствах
+        function setupMobileControls() {
+            document.getElementById('up-btn').addEventListener('touchstart', () => {
+                gameState.player.y -= gameState.player.speed;
+            });
+            
+            document.getElementById('left-btn').addEventListener('touchstart', () => {
+                gameState.player.x -= gameState.player.speed;
+            });
+            
+            document.getElementById('right-btn').addEventListener('touchstart', () => {
+                gameState.player.x += gameState.player.speed;
+            });
+            
+            document.getElementById('action-btn').addEventListener('touchstart', () => {
+                checkForInteraction();
+            });
+        }
+
+        // Проверка взаимодействий
+        function checkForInteraction() {
+            gameState.npcs.forEach(npc => {
+                const distance = Math.sqrt(
+                    Math.pow(gameState.player.x - npc.x, 2) + 
+                    Math.pow(gameState.player.y - npc.y, 2)
+                );
+                
+                if (distance < 50) {
+                    // Особое условие для двери дома мэра
+                    if (npc.id === 2) {
+                        if (gameState.player.items.includes('key')) {
+                            startDialog(npc, 1); // Начинаем с диалога 1, если есть ключ
+                        } else {
+                            startDialog(npc, 0); // Начинаем с диалога 0, если нет ключа
+                        }
+                    } else {
+                        startDialog(npc);
+                    }
+                }
+            });
+        }
+
+        // Начало диалога
+        function startDialog(npc, startLine = 0) {
+            gameState.currentDialog = {
+                npcId: npc.id,
+                currentLine: startLine
+            };
+            
+            showDialogLine(startLine);
+        }
+
+        // Показ строки диалога
+        function showDialogLine(lineId) {
+            const npc = gameState.npcs.find(n => n.id === gameState.currentDialog.npcId);
+            const dialog = npc.dialog.find(d => d.id === lineId);
+            
+            dialogText.textContent = dialog.text;
+            
+            // Очищаем предыдущие варианты ответов
+            while (dialogOptions.firstChild) {
+                dialogOptions.removeChild(dialogOptions.firstChild);
+            }
+            
+            // Добавляем варианты ответов в зависимости от текущего диалога
+            if (npc.id === 1) { // Мудрец
+                if (lineId === 0) {
+                    addDialogOption('Кто ты?', 1);
+                    addDialogOption('Что случилось с мэром?', 2);
+                    addDialogOption('Я помогу!', 3);
+                } else if (lineId === 3) {
+                    addDialogOption('Спасибо за ключ!', 'close');
+                    
+                    // Добавляем ключ в инвентарь
+                    if (!gameState.player.items.includes('key')) {
+                        gameState.player.items.push('key');
+                        updateInventory();
+                    }
+                } else {
+                    addDialogOption('Понятно...', 'close');
+                }
+            } else if (npc.id === 2) { // Дверь дома мэра
+                if (lineId === 1) {
+                    addDialogOption('Осмотреть дом', 2);
+                } else if (lineId === 2) {
+                    addDialogOption('Отправиться к старой лаборатории', 'tower');
+                } else {
+                    addDialogOption('Уйти', 'close');
+                }
+            }
+        }
+
+        // Добавление варианта диалога
+        function addDialogOption(text, nextLine) {
+            const option = document.createElement('div');
+            option.className = 'dialog-option';
+            option.textContent = text;
+            option.dataset.next = nextLine;
+            option.addEventListener('click', (e) => {
+                const next = e.target.dataset.next;
+                
+                if (next === 'close') {
+                    gameState.currentDialog = null;
+                } else if (next === 'tower') {
+                    // Переход к следующей части игры
+                    window.location.href = 'index1.html';
+                } else {
+                    showDialogLine(parseInt(next));
+                }
+            });
+            
+            dialogOptions.appendChild(option);
+        }
+
+        // Обновление инвентаря
+        function updateInventory() {
+            inventorySlots.forEach((slot, index) => {
+                if (index < gameState.player.items.length) {
+                    slot.textContent = gameState.player.items[index] === 'key' ? '🗝️' : '?';
+                } else {
+                    slot.textContent = '?';
+                }
+            });
+        }
+
+        // Воспроизведение звука
+        function playSound(sound) {
+            sound.currentTime = 0;
+            sound.play().catch(e => console.log("Не удалось воспроизвести звук"));
+        }
+
+        // Обработка клавиатуры
+        document.addEventListener('keydown', (e) => {
+            if (gameState.currentScreen !== 'game') return;
+            
+            const prevX = gameState.player.x;
+            const prevY = gameState.player.y;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    gameState.player.y -= gameState.player.speed;
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    gameState.player.y += gameState.player.speed;
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    gameState.player.x -= gameState.player.speed;
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    gameState.player.x += gameState.player.speed;
+                    break;
+                case ' ':
+                case 'Enter':
+                    checkForInteraction();
+                    break;
+                case 'Escape':
+                    gameState.currentDialog = null;
+                    break;
+            }
+            
+            // Проверяем столкновения и откатываем движение при необходимости
+            let collision = false;
+            gameState.objects.forEach(obj => {
+                if (obj.solid && checkCollision(gameState.player.x, gameState.player.y, obj)) {
+                    collision = true;
+                }
+            });
+            
+            if (collision) {
+                gameState.player.x = prevX;
+                gameState.player.y = prevY;
+            }
+            
+            // Ограничение движения в пределах экрана
+            gameState.player.x = Math.max(
+                gameState.player.width/2, 
+                Math.min(gameCanvas.width - gameState.player.width/2, gameState.player.x)
+            );
+            gameState.player.y = Math.max(
+                gameState.player.height/2, 
+                Math.min(gameCanvas.height - gameState.player.height/2, gameState.player.y)
+            );
+        });
+
+        // Инициализация при загрузке
+        window.addEventListener('load', initGame);
+    </script>
+</body>
+</html>
